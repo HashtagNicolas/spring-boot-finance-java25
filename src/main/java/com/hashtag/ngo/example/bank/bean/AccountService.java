@@ -30,4 +30,10 @@ public interface AccountService {
      * de solde negatif pour un compte epargne).
      */
     Account withdraw(Long accountId, BigDecimal amount);
+
+    /**
+     * Applique les interets sur un compte epargne (voir SavingsAccount#applyInterest).
+     * Sans effet valide sur un compte courant, qui n'a pas de notion de taux.
+     */
+    Account applyInterest(Long accountId);
 }

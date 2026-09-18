@@ -70,4 +70,10 @@ public class AccountController {
     public AccountResponse withdraw(@PathVariable Long id, @RequestBody TransactionRequest request) {
         return accountMapper.toResponse(accountService.withdraw(id, request.amount()));
     }
+
+    @PostMapping("/{id}/apply-interest")
+    @Operation(summary = "Applique les interets sur un compte epargne")
+    public AccountResponse applyInterest(@PathVariable Long id) {
+        return accountMapper.toResponse(accountService.applyInterest(id));
+    }
 }

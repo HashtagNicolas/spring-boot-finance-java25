@@ -82,6 +82,23 @@ public class AccountServiceImpl implements AccountService {
         return account;
     }
 
+    @Override
+    @Transactional
+    public Account applyInterest(Long accountId) {
+        Account account = getAccount(accountId);
+
+        // Switch exhaustif (statement, pas expression ici puisqu'on ne
+        // produit pas de valeur) sur la hierarchie scellee Account : seul un
+        // SavingsAccount sait produire des interets, un CheckingAccount n'a
+        // simplement pas de taux et se voit refuser l'operation.
+        switch (account) {
+            case SavingsAccount savings -> savings.applyInterest();
+            case CheckingAccount checking -> throw new InvalidAmountException(
+                    "Les interets ne s'appliquent qu'aux comptes epargne");
+        }
+        return account;
+    }
+
     private static void requirePositiveAmount(BigDecimal amount) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new InvalidAmountException("Le montant doit etre strictement positif");
