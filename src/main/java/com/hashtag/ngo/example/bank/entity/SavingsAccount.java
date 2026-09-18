@@ -31,7 +31,7 @@ public final class SavingsAccount extends Account {
         // d'interet AVANT l'appel a super(...), avant que l'objet ne soit
         // construit, pour interdire tout SavingsAccount avec un taux negatif.
         if (interestRate == null || interestRate.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("Le taux d'interet doit etre >= 0");
+            throw new InvalidAmountException("Le taux d'interet doit etre >= 0");
         }
         super(owner, balance);
         this.interestRate = interestRate;

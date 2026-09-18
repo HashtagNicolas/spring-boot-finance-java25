@@ -2,15 +2,17 @@ package com.hashtag.ngo.example.bank.bean.impl;
 
 import com.hashtag.ngo.example.bank.bean.AccountService;
 import com.hashtag.ngo.example.bank.entity.Account;
+import com.hashtag.ngo.example.bank.entity.AccountNotFoundException;
 import com.hashtag.ngo.example.bank.entity.AccountRepository;
 import com.hashtag.ngo.example.bank.entity.CheckingAccount;
+import com.hashtag.ngo.example.bank.entity.InsufficientFundsException;
+import com.hashtag.ngo.example.bank.entity.InvalidAmountException;
 import com.hashtag.ngo.example.bank.entity.SavingsAccount;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.NoSuchElementException;
 
 @Service
 public class AccountServiceImpl implements AccountService {
@@ -36,7 +38,7 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public Account getAccount(Long accountId) {
         return accountRepository.findById(accountId)
-                .orElseThrow(() -> new NoSuchElementException("Compte introuvable : " + accountId));
+                .orElseThrow(() -> new AccountNotFoundException("Compte introuvable : " + accountId));
     }
 
     @Override
@@ -74,7 +76,7 @@ public class AccountServiceImpl implements AccountService {
 
         BigDecimal newBalance = account.getBalance().subtract(amount);
         if (newBalance.compareTo(minimumBalance) < 0) {
-            throw new IllegalStateException("Solde insuffisant pour ce retrait (limite : " + minimumBalance + ")");
+            throw new InsufficientFundsException("Solde insuffisant pour ce retrait (limite : " + minimumBalance + ")");
         }
         account.setBalance(newBalance);
         return account;
@@ -82,7 +84,7 @@ public class AccountServiceImpl implements AccountService {
 
     private static void requirePositiveAmount(BigDecimal amount) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Le montant doit etre strictement positif");
+            throw new InvalidAmountException("Le montant doit etre strictement positif");
         }
     }
 }

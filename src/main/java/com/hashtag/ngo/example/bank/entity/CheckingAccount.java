@@ -34,7 +34,7 @@ public final class CheckingAccount extends Account {
         // qu'un CheckingAccount invalide (decouvert negatif) ne peut jamais
         // etre observe, meme partiellement construit.
         if (overdraftLimit == null || overdraftLimit.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("Le decouvert autorise doit etre >= 0");
+            throw new InvalidAmountException("Le decouvert autorise doit etre >= 0");
         }
         super(owner, balance);
         this.overdraftLimit = overdraftLimit;

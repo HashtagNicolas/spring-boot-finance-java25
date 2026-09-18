@@ -65,7 +65,7 @@ public abstract sealed class Account permits CheckingAccount, SavingsAccount {
             throw new IllegalArgumentException("Le titulaire du compte est obligatoire");
         }
         if (balance == null) {
-            throw new IllegalArgumentException("Le solde initial est obligatoire");
+            throw new InvalidAmountException("Le solde initial est obligatoire");
         }
         this.owner = owner;
         this.balance = balance;
