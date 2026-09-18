@@ -1,0 +1,38 @@
+# Configuration de l'application (H2 en memoire pour le squelette).
+
+server:
+  port: 8080
+
+spring:
+  application:
+    name: bank-api
+
+  datasource:
+    # Base de donnees H2 embarquee, en memoire, reinitialisee a chaque demarrage.
+    url: "jdbc:h2:mem:bankdb;DB_CLOSE_DELAY=-1"
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    # Hibernate genere/valide le schema a partir des entites JPA (pratique
+    # pour ce squelette ; a remplacer par des migrations versionnees type
+    # Flyway/Liquibase pour une vraie mise en production).
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+  h2:
+    console:
+      # Console H2 accessible sur /h2-console (utile en developpement).
+      enabled: true
+
+# Proprietes applicatives propres a l'API bancaire.
+app:
+  jwt:
+    # Secret HMAC utilise pour signer/valider les jetons JWT (JwtServiceImpl).
+    # Doit faire au moins 32 caracteres (256 bits) pour HS256.
+    # ATTENTION : valeur de DEMONSTRATION UNIQUEMENT - A CHANGER EN PRODUCTION
+    # (a fournir via une variable d'environnement ou un coffre-fort de
+    # secrets, jamais en dur dans le depot de code).
+    secret: "changez-moi-en-production-ceci-est-un-secret-de-demo-uniquement"
