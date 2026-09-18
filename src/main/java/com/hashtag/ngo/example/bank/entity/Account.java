@@ -88,8 +88,13 @@ public abstract sealed class Account permits CheckingAccount, SavingsAccount {
         return createdAt;
     }
 
-    /** Reserve aux sous-classes (ex : SavingsAccount#applyInterest). */
-    protected void setBalance(BigDecimal balance) {
+    /**
+     * Public (et non plus reserve aux seules sous-classes) : la couche bean
+     * (AccountServiceImpl) doit pouvoir modifier le solde lors des depots et
+     * retraits, apres avoir applique les regles metier propres a chaque type
+     * de compte (cf. pattern matching for switch dans AccountServiceImpl).
+     */
+    public void setBalance(BigDecimal balance) {
         this.balance = balance;
     }
 }
