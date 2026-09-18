@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+        On herite du parent Spring Boot : il fournit la gestion centralisee des
+        versions (dependencyManagement) pour tout l'ecosysteme Spring, ainsi que
+        la configuration par defaut des plugins Maven (compilateur, packaging
+        executable, etc.). La version 4.1.x cible Spring Framework 7 / Java 17+
+        et est compatible avec Java 25.
+    -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.1.0</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.hashtag.ngo.example.bank</groupId>
+    <artifactId>bank-api</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <name>bank-api</name>
+    <description>API de comptes bancaires avec transactions tracables (squelette pedagogique)</description>
+
+    <properties>
+        <!-- Cible Java 25 : active notamment les "Flexible Constructor Bodies" (JEP 513) -->
+        <java.version>25</java.version>
+        <maven.compiler.release>25</maven.compiler.release>
+
+        <!-- Versions centralisees des dependances non gerees par le parent Spring Boot -->
+        <cucumber.version>7.20.1</cucumber.version>
+        <archunit.version>1.3.0</archunit.version>
+        <mapstruct.version>1.6.3</mapstruct.version>
+        <jjwt.version>0.12.6</jjwt.version>
+        <springdoc.version>3.0.0</springdoc.version>
+    </properties>
+
+    <dependencies>
+        <!-- ===================== DEPENDANCES DE PRODUCTION ===================== -->
+
+        <!--
+            Starter web : apporte Spring MVC + Tomcat embarque, pour exposer les
+            futurs controleurs REST de l'API de comptes bancaires.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!--
+            Starter security : fournit l'authentification/autorisation Spring
+            Security, necessaire pour proteger les endpoints (les transactions
+            bancaires doivent etre tracables et securisees).
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <!--
+            Starter data JPA : apporte Hibernate (JPA) + Spring Data JPA pour la
+            persistance des entites Account/Transaction sans ecrire de DAO a la main.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
+        <!--
+            Base de donnees H2 : base embarquee en memoire, utilisee ici comme
+            base de developpement/demo. Scope "runtime" car le code ne depend
+            jamais directement des classes H2, seulement du driver JDBC au demarrage.
+        -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!--
+            Springdoc OpenAPI : genere automatiquement la documentation OpenAPI
+            de l'API REST et expose une interface Swagger UI (utile pour explorer
+            les futurs endpoints de comptes/transactions).
+        -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc.version}</version>
+        </dependency>
+
+        <!--
+            MapStruct : generateur de mappers (DTO <-> entite) execute a la
+            compilation, evite d'ecrire du code de mapping repetitif a la main.
+            La dependance principale porte les annotations utilisees dans le code.
+        -->
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+            <version>${mapstruct.version}</version>
+        </dependency>
+
+        <!--
+            JJWT (Java JWT) : creation/validation de jetons JWT pour
+            l'authentification stateless de l'API. Trois modules :
+            - jjwt-api : API publique utilisee dans le code (compile).
+            - jjwt-impl : implementation concrete, chargee uniquement a
+              l'execution (runtime) pour ne pas coupler le code compile a l'impl.
+            - jjwt-jackson : (de)serialisation JSON des claims via Jackson,
+              egalement necessaire seulement a l'execution.
+        -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>${jjwt.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- ===================== DEPENDANCES DE TEST ===================== -->
+
+        <!--
+            Starter test Spring Boot : regroupe JUnit 5, Mockito, AssertJ,
+            Spring Test, etc. Scope "test" car uniquement necessaire pour
+            compiler/executer les tests.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!--
+            Cucumber : moteur BDD (Gherkin) pour ecrire les scenarios de test
+            metier lisibles (ex : "Etant donne un compte courant avec un solde
+            de 100 EUR, quand je retire 20 EUR, alors le solde est 80 EUR").
+            - cucumber-java : implementation des steps en Java.
+            - cucumber-spring : integration du contexte Spring dans les steps
+              Cucumber (injection de dependances dans les classes de test).
+            - cucumber-junit-platform-engine : permet d'executer les scenarios
+              Cucumber via la plateforme JUnit 5 (donc via Surefire/Failsafe).
+        -->
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-java</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-spring</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-junit-platform-engine</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!--
+            ArchUnit (JUnit 5) : permet d'ecrire des tests qui verifient
+            automatiquement le respect de regles d'architecture (ex : les
+            entites ne doivent pas dependre de la couche web, les noms de
+            packages doivent respecter une convention, etc.).
+        -->
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit-junit5</artifactId>
+            <version>${archunit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!--
+                Plugin de packaging Spring Boot : construit un jar executable
+                (avec serveur Tomcat embarque) et fournit les goals
+                spring-boot:run / spring-boot:build-image. Herite du parent,
+                declare ici uniquement pour rendre la configuration explicite.
+            -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+
+            <!--
+                Plugin compilateur Maven : on y branche le "annotation
+                processing path" avec le processeur MapStruct, requis pour que
+                MapStruct genere l'implementation des mappers annotes @Mapper
+                a la compilation (sinon aucune classe d'implementation n'est
+                produite et l'injection Spring des mappers echoue).
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.mapstruct</groupId>
+                            <artifactId>mapstruct-processor</artifactId>
+                            <version>${mapstruct.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
