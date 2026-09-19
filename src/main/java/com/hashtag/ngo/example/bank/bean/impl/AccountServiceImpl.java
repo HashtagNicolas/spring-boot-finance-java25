@@ -41,6 +41,44 @@ public class AccountServiceImpl implements AccountService {
                 .orElseThrow(() -> new AccountNotFoundException("Compte introuvable : " + accountId));
     }
 
+    /**
+     * Variante de {@link #getAccount(Long)} reservee aux methodes qui
+     * MODIFIENT le solde (deposit, withdraw, applyInterest).
+     * <p>
+     * Pourquoi un verrou pessimiste est necessaire ici : {@code processBatch}
+     * (TransactionServiceImpl) traite chaque operation du lot sur son propre
+     * thread virtuel, potentiellement en parallele. Si deux operations visent
+     * le MEME compte (ex : un depot et un retrait sur le compte de Gustave),
+     * chaque thread ferait sans verrou la sequence classique "lire le solde
+     * -> calculer le nouveau solde -> ecrire" independamment l'un de l'autre :
+     * les deux threads liraient potentiellement le MEME solde de depart, et
+     * le dernier a ecrire ecraserait le resultat de l'autre (perte de
+     * l'operation ecrasee, un "lost update" / condition de course classique).
+     * Les threads virtuels ne changent rien a ce risque : ce sont de vrais
+     * threads du point de vue de la synchronisation, seulement plus legers
+     * a l'execution.
+     * <p>
+     * {@code findByIdForUpdate} emet un {@code SELECT ... FOR UPDATE} qui
+     * pose un verrou pessimiste en ecriture sur la ligne du compte : le
+     * PREMIER thread a lire le compte "gele" cette ligne jusqu'a la fin de sa
+     * transaction (commit ou rollback), et tout AUTRE thread qui essaie de
+     * lire ce meme compte via findByIdForUpdate est mis en ATTENTE jusqu'a ce
+     * que le verrou soit libere. Les operations sur un meme compte sont ainsi
+     * serialisees (jamais executees en parallele), ce qui rend le solde final
+     * correct et deterministe quel que soit l'ordre d'arrivee des threads.
+     * <p>
+     * Ce verrou n'a d'effet que s'il est pose DANS une transaction active :
+     * deposit/withdraw/applyInterest sont donc @Transactional, et toujours
+     * appelees via l'interface AccountService injectee (le bean/proxy Spring
+     * genere pour @Transactional), jamais par un appel direct depuis une
+     * autre methode de cette meme classe (un tel appel "interne"
+     * contournerait le proxy et donc la transaction).
+     */
+    private Account getAccountForUpdate(Long accountId) {
+        return accountRepository.findByIdForUpdate(accountId)
+                .orElseThrow(() -> new AccountNotFoundException("Compte introuvable : " + accountId));
+    }
+
     @Override
     public List<Account> listAccounts() {
         return accountRepository.findAll();
@@ -50,7 +88,7 @@ public class AccountServiceImpl implements AccountService {
     @Transactional
     public Account deposit(Long accountId, BigDecimal amount) {
         requirePositiveAmount(amount);
-        Account account = getAccount(accountId);
+        Account account = getAccountForUpdate(accountId);
         account.setBalance(account.getBalance().add(amount));
         return account;
     }
@@ -59,7 +97,7 @@ public class AccountServiceImpl implements AccountService {
     @Transactional
     public Account withdraw(Long accountId, BigDecimal amount) {
         requirePositiveAmount(amount);
-        Account account = getAccount(accountId);
+        Account account = getAccountForUpdate(accountId);
 
         // Pattern matching for switch (JEP 441, Java 21) sur la hierarchie
         // scellee Account : comme Account est "sealed" et ne permet que
@@ -85,7 +123,7 @@ public class AccountServiceImpl implements AccountService {
     @Override
     @Transactional
     public Account applyInterest(Long accountId) {
-        Account account = getAccount(accountId);
+        Account account = getAccountForUpdate(accountId);
 
         // Switch exhaustif (statement, pas expression ici puisqu'on ne
         // produit pas de valeur) sur la hierarchie scellee Account : seul un
